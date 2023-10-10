@@ -44,12 +44,10 @@ class csvToScalarArray(om.MPxNode):
         frame = max(0, frame)
         frame = min(frame, data_cache.data.shape[0]-1)
         frame_data = data_cache.data[frame,:]
-        
+
         # (4) Output
         output_array = om.MFnDoubleArrayData(result_handle.data())
-        output_values = []
-        for component in frame_data:
-            output_values.append(component)        
+        output_values = list(frame_data)
         output_array.set(output_values)
         result_handle.setClean()
 
@@ -58,7 +56,6 @@ def create():
 
 
 def init():
-    pass
     # (1) Get Maya data types and attributes
     kString = om.MFnData.kString
     kFloat = om.MFnNumericData.kFloat

@@ -32,14 +32,13 @@ def print_named_values(node_name):
     print s.format(*encoded)
 
 def directionBetweenMats(mat1,mat2):
-    vec1 = om.MVector(mat1[3][0:3])
-    vec2 = om.MVector(mat2[3][0:3])
-    result = vec2-vec1
-    return result
+    vec1 = om.MVector(mat1[3][:3])
+    vec2 = om.MVector(mat2[3][:3])
+    return vec2-vec1
     
 def lengthBetweenMats(mat1,mat2):
-    vec1 = om.MVector(mat1[3][0:3])
-    vec2 = om.MVector(mat2[3][0:3])
+    vec1 = om.MVector(mat1[3][:3])
+    vec2 = om.MVector(mat2[3][:3])
     result = vec2-vec1
     return result.length()
 
@@ -48,7 +47,7 @@ def wire_FK_to_IKRig(name_mapping):
     ikrig_name = ikrig_node.name()
 
     for in_attr, out_attr in name_mapping.iteritems():
-        pmc.connectAttr(out_attr + '.worldMatrix', ikrig_name + '.' + in_attr)
+        pmc.connectAttr(f'{out_attr}.worldMatrix', f'{ikrig_name}.{in_attr}')
 
     # setup static attributes
     mat_hips = pmc.getAttr(name_mapping.get('mat_hips') + '.worldMatrix')
@@ -64,19 +63,46 @@ def wire_FK_to_IKRig(name_mapping):
     mat_shoulder_R = pmc.getAttr(name_mapping.get('mat_shoulder_R') + '.worldMatrix')
     mat_hand_R = pmc.getAttr(name_mapping.get('mat_hand_R') + '.worldMatrix')
 
-    pmc.setAttr(ikrig_name + '.mat_hips_rest', mat_hips) 
-    pmc.setAttr(ikrig_name + '.height_hips', mat_hips[3][1]) # y value of mat hips
-    pmc.setAttr(ikrig_name + '.length_spine', lengthBetweenMats(mat_hips, mat_chest))
-    pmc.setAttr(ikrig_name + '.length_neck', lengthBetweenMats(mat_neck, mat_head))
-    pmc.setAttr(ikrig_name + '.length_leg_L', lengthBetweenMats(mat_leg_L, mat_foot_L))
-    pmc.setAttr(ikrig_name + '.length_leg_R', lengthBetweenMats(mat_leg_R, mat_foot_R))
-    pmc.setAttr(ikrig_name + '.length_arm_L', lengthBetweenMats(mat_shoulder_L, mat_hand_L))
-    pmc.setAttr(ikrig_name + '.length_arm_R', lengthBetweenMats(mat_shoulder_R, mat_hand_R))
-    pmc.setAttr(ikrig_name + '.root_offset_neck', directionBetweenMats(mat_chest, mat_neck))
-    pmc.setAttr(ikrig_name + '.root_offset_leg_L', directionBetweenMats(mat_hips, mat_leg_L))
-    pmc.setAttr(ikrig_name + '.root_offset_leg_R', directionBetweenMats(mat_hips, mat_leg_R))
-    pmc.setAttr(ikrig_name + '.root_offset_arm_L', directionBetweenMats(mat_chest, mat_shoulder_L))
-    pmc.setAttr(ikrig_name + '.root_offset_arm_R', directionBetweenMats(mat_chest, mat_shoulder_R))
+    pmc.setAttr(f'{ikrig_name}.mat_hips_rest', mat_hips)
+    pmc.setAttr(f'{ikrig_name}.height_hips', mat_hips[3][1])
+    pmc.setAttr(
+        f'{ikrig_name}.length_spine', lengthBetweenMats(mat_hips, mat_chest)
+    )
+    pmc.setAttr(f'{ikrig_name}.length_neck', lengthBetweenMats(mat_neck, mat_head))
+    pmc.setAttr(
+        f'{ikrig_name}.length_leg_L', lengthBetweenMats(mat_leg_L, mat_foot_L)
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_leg_R', lengthBetweenMats(mat_leg_R, mat_foot_R)
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_arm_L',
+        lengthBetweenMats(mat_shoulder_L, mat_hand_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_arm_R',
+        lengthBetweenMats(mat_shoulder_R, mat_hand_R),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_neck',
+        directionBetweenMats(mat_chest, mat_neck),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_leg_L',
+        directionBetweenMats(mat_hips, mat_leg_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_leg_R',
+        directionBetweenMats(mat_hips, mat_leg_R),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_arm_L',
+        directionBetweenMats(mat_chest, mat_shoulder_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_arm_R',
+        directionBetweenMats(mat_chest, mat_shoulder_R),
+    )
 
 def setup_IKRig_decode(name_mapping):
     ikrig_node = pmc.createNode('ikrig_decode')
@@ -94,18 +120,45 @@ def setup_IKRig_decode(name_mapping):
     mat_hand_L = pmc.getAttr(name_mapping.get('mat_hand_L') + '.worldMatrix')
     mat_shoulder_R = pmc.getAttr(name_mapping.get('mat_shoulder_R') + '.worldMatrix')
     mat_hand_R = pmc.getAttr(name_mapping.get('mat_hand_R') + '.worldMatrix')
-    pmc.setAttr(ikrig_name + '.height_hips', mat_hips[3][1]) # y value of mat hips
-    pmc.setAttr(ikrig_name + '.length_spine', lengthBetweenMats(mat_hips, mat_chest))
-    pmc.setAttr(ikrig_name + '.length_neck', lengthBetweenMats(mat_neck, mat_head))
-    pmc.setAttr(ikrig_name + '.length_leg_L', lengthBetweenMats(mat_leg_L, mat_foot_L))
-    pmc.setAttr(ikrig_name + '.length_leg_R', lengthBetweenMats(mat_leg_R, mat_foot_R))
-    pmc.setAttr(ikrig_name + '.length_arm_L', lengthBetweenMats(mat_shoulder_L, mat_hand_L))
-    pmc.setAttr(ikrig_name + '.length_arm_R', lengthBetweenMats(mat_shoulder_R, mat_hand_R))
-    pmc.setAttr(ikrig_name + '.root_offset_neck', directionBetweenMats(mat_chest, mat_neck))
-    pmc.setAttr(ikrig_name + '.root_offset_leg_L', directionBetweenMats(mat_hips, mat_leg_L))
-    pmc.setAttr(ikrig_name + '.root_offset_leg_R', directionBetweenMats(mat_hips, mat_leg_R))
-    pmc.setAttr(ikrig_name + '.root_offset_arm_L', directionBetweenMats(mat_chest, mat_shoulder_L))
-    pmc.setAttr(ikrig_name + '.root_offset_arm_R', directionBetweenMats(mat_chest, mat_shoulder_R))
+    pmc.setAttr(f'{ikrig_name}.height_hips', mat_hips[3][1])
+    pmc.setAttr(
+        f'{ikrig_name}.length_spine', lengthBetweenMats(mat_hips, mat_chest)
+    )
+    pmc.setAttr(f'{ikrig_name}.length_neck', lengthBetweenMats(mat_neck, mat_head))
+    pmc.setAttr(
+        f'{ikrig_name}.length_leg_L', lengthBetweenMats(mat_leg_L, mat_foot_L)
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_leg_R', lengthBetweenMats(mat_leg_R, mat_foot_R)
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_arm_L',
+        lengthBetweenMats(mat_shoulder_L, mat_hand_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.length_arm_R',
+        lengthBetweenMats(mat_shoulder_R, mat_hand_R),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_neck',
+        directionBetweenMats(mat_chest, mat_neck),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_leg_L',
+        directionBetweenMats(mat_hips, mat_leg_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_leg_R',
+        directionBetweenMats(mat_hips, mat_leg_R),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_arm_L',
+        directionBetweenMats(mat_chest, mat_shoulder_L),
+    )
+    pmc.setAttr(
+        f'{ikrig_name}.root_offset_arm_R',
+        directionBetweenMats(mat_chest, mat_shoulder_R),
+    )
 
 cmu_name_mapping = {'mat_hips':'Hips',
                     'mat_spine':'Spine',

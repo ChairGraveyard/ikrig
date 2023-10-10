@@ -84,8 +84,7 @@ def MMat2Trans(mat):
 def FK2encoded_root_positionOffset(g_mat, root_jnt):
     # Get normalized IK root position
     l_root_jnt = root_jnt * g_mat.inverse()
-    ik_root = MMat2Trans(l_root_jnt)
-    return ik_root
+    return MMat2Trans(l_root_jnt)
 
 def FK2encoded_root_rotationOffset(g_mat, root_offset, root_jnt):
     # Get rotational offset
@@ -95,8 +94,7 @@ def FK2encoded_root_rotationOffset(g_mat, root_offset, root_jnt):
     root_offset.normalize()
     axis = root_offset^vec_root
     angle = math.acos(root_offset*vec_root)
-    ik_root = om.MQuaternion().setValue(axis, angle)
-    return ik_root
+    return om.MQuaternion().setValue(axis, angle)
 
 def FK2encoded(g_mat, root_offset, root_jnt, dir_jnt, eff_jnt, chain_length):
     if type(root_offset) == bool:
@@ -127,21 +125,17 @@ def FK2encoded(g_mat, root_offset, root_jnt, dir_jnt, eff_jnt, chain_length):
     return ik_root, ik_eff, ik_upv, ik_eff_rot
 
 def encoded2IK_root_positionOffset(encoded_pose_array, char_scale):
-    ik_chain_root = om.MVector(encoded_pose_array[0] * char_scale,
-                               encoded_pose_array[1] * char_scale,
-                               encoded_pose_array[2] * char_scale)
-    return ik_chain_root
+    return om.MVector(
+        encoded_pose_array[0] * char_scale,
+        encoded_pose_array[1] * char_scale,
+        encoded_pose_array[2] * char_scale,
+    )
 def encoded2IK_root_rotationOffset(encoded_pose_array, root_offset):
     rotation_offset = om.MQuaternion(encoded_pose_array[0],
                                     encoded_pose_array[1],
                                     encoded_pose_array[2],
                                     encoded_pose_array[3])
-    # print('Quaternion = ', rotation_offset)
-    # print('Root offset = ', root_offset)
-    ik_chain_root = root_offset * rotation_offset.asMatrix()
-    # print('IK chain root = ', ik_chain_root)
-    # ik_chain_root = root_offset
-    return ik_chain_root
+    return root_offset * rotation_offset.asMatrix()
 
 def encoded2IK(encoded_pose_array, root_offset, char_scale, chain_scale):
     if type(root_offset) == bool:
@@ -172,35 +166,28 @@ class ikrig_encode(om.MPxNode):
         # (1) Get handles from MPxNode's data block
         for attr in float_attrs:
             handle = datablock.inputValue(getattr(ikrig_encode,attr))
-            exec(attr + "= handle.asFloat()")
+            exec(f"{attr}= handle.asFloat()")
         for attr in vector_attrs:
             handle = datablock.inputValue(getattr(ikrig_encode,attr))
             vec = handle.asFloatVector()
-            exec(attr + "= om.MVector(vec.x, vec.y, vec.z)")
+            exec(f"{attr}= om.MVector(vec.x, vec.y, vec.z)")
         for attr in mat_attrs:
             handle = datablock.inputValue(getattr(ikrig_encode,attr))
-            exec(attr + "= handle.asMatrix()")
+            exec(f"{attr}= handle.asMatrix()")
         mirrorHandle = datablock.inputValue(ikrig_encode.mirror)
         mirror = mirrorHandle.asBool()
         normalize_global_xfoHandle = datablock.inputValue(ikrig_encode.normalize_global_xfo)
         normalize_global_xfo = normalize_global_xfoHandle.asBool()
 
-        # Global xfo with default hips height and 2d orientation
-            # get xfo from rest pose 
         mat_hips_delta = mat_hips_rest.inverse() * mat_hips
-            # use xfo to transform direction vector
         direction = om.MVector([.0,.0,1.])*mat_hips_delta
-            # constraint direction to xz plane
         direction.y = 0
-            # get all vectors
         zaxis = direction.normal()
         yaxis = om.MVector([.0,1.,.0])
         xaxis = yaxis^zaxis.normal()
-            # build global matrix
         g_tr_x = mat_hips[12]
         g_tr_y = height_hips
         g_tr_z = mat_hips[14]
-            # scale to normalize for height
         zaxis *= height_hips
         yaxis *= height_hips
         xaxis *= height_hips
@@ -213,14 +200,12 @@ class ikrig_encode(om.MPxNode):
 
         # chains
         ik_spine_root, ik_spine_eff, ik_spine_upv, ik_spine_eff_rot = FK2encoded(g_mat, False, mat_hips, mat_spine, mat_chest, length_spine)
-            # lower body roots are offsets to hips
         lower_body_mat = om.MMatrix(g_mat)
         lower_body_mat[12] = mat_hips[12]
         lower_body_mat[13] = mat_hips[13]
         lower_body_mat[14] = mat_hips[14]
         ik_leg_root_L, ik_leg_eff_L, ik_leg_upv_L, ik_leg_eff_rot_L = FK2encoded(lower_body_mat, root_offset_leg_L, mat_leg_L, mat_shin_L, mat_foot_L, length_leg_L)
         ik_leg_root_R, ik_leg_eff_R, ik_leg_upv_R, ik_leg_eff_rot_R = FK2encoded(lower_body_mat, root_offset_leg_R, mat_leg_R, mat_shin_R, mat_foot_R, length_leg_R)
-            # upper body roots are offsets to neck
         upper_body_mat = om.MMatrix(g_mat)
         upper_body_mat[12] = mat_chest[12]
         upper_body_mat[13] = mat_chest[13]
@@ -232,7 +217,7 @@ class ikrig_encode(om.MPxNode):
         if normalize_global_xfo:
             g_tr_x /= height_hips
             g_tr_z /= height_hips
-        
+
         if g_ori.y < 0: # avoid flips on y rotation
             g_ori.y += math.radians(360)
 
@@ -243,14 +228,14 @@ class ikrig_encode(om.MPxNode):
                           ik_leg_eff_R, ik_leg_upv_R, 
                           ik_arm_eff_L, ik_arm_upv_L, 
                           ik_arm_eff_R, ik_arm_upv_R]
-        
+
         rot_components = [ik_spine_eff_rot,
                          ik_neck_root, ik_neck_eff_rot,
                          ik_leg_root_L, ik_leg_eff_rot_L,
                          ik_leg_root_R, ik_leg_eff_rot_R,
                          ik_arm_root_L, ik_arm_eff_rot_L,
                          ik_arm_root_R, ik_arm_eff_rot_R]
-        
+
         if mirror:
             global_components = (-g_tr_x, g_tr_z, -g_ori.y)
             for component in pos_components:
@@ -273,14 +258,13 @@ class ikrig_encode(om.MPxNode):
                 rot_components[5], pos_components[7], pos_components[8], rot_components[6],
                 rot_components[7], pos_components[9], pos_components[10], rot_components[8],
                 rot_components[9], pos_components[11], pos_components[12], rot_components[10]]
-                          
+
 
         result_handle = datablock.outputValue(ikrig_encode.result)
         output_array = om.MFnDoubleArrayData(result_handle.data())
         output_values = []
         for component in out_components:
-            for i in range(len(component)):
-                output_values.append(component[i])        
+            output_values.extend(component[i] for i in range(len(component)))
         output_array.set(output_values)
         result_handle.setClean()
 
@@ -391,22 +375,24 @@ class ikrig_decode(om.MPxNode):
         offset_mat = offset_mat_Handle.asMatrix()
         for attr in float_attrs:
             handle = datablock.inputValue(getattr(ikrig_decode,attr))
-            exec(attr + "= handle.asFloat()")
+            exec(f"{attr}= handle.asFloat()")
         for attr in vector_attrs:
             handle = datablock.inputValue(getattr(ikrig_decode,attr))
             vec = handle.asFloatVector()
-            exec(attr + "= om.MVector(vec.x, vec.y, vec.z)")
+            exec(f"{attr}= om.MVector(vec.x, vec.y, vec.z)")
         for attr in out_float3_attrs:
             handle = datablock.outputValue(getattr(ikrig_decode,attr))
-            exec(attr + "_Handle = handle")
+            exec(f"{attr}_Handle = handle")
         global_mat_Handle = datablock.outputValue(ikrig_decode.global_mat)
         normalized_global_xfoHandle = datablock.inputValue(ikrig_decode.normalized_global_xfo)
         normalized_global_xfo = normalized_global_xfoHandle.asBool()
 
         if len(encoded_pose_array) != 86:
-            print('Encoded pose with wrong length, expecting 86 dimensions got ' + str(len(encoded_pose_array)))
+            print(
+                f'Encoded pose with wrong length, expecting 86 dimensions got {len(encoded_pose_array)}'
+            )
             return
-        
+
         # Global character transform
         g_tr_x = encoded_pose_array[0]
         g_tr_y = 0
@@ -472,7 +458,7 @@ class ikrig_decode(om.MPxNode):
         ik_Arm_dir_L_Handle.set3Float(ik_arm_upv_L[0],ik_arm_upv_L[1],ik_arm_upv_L[2])
         ik_Arm_eff_rot_L_Handle.set3Double(ik_arm_eff_rot_L[0],ik_arm_eff_rot_L[1],ik_arm_eff_rot_L[2])
         ik_Arm_root_R_Handle.set3Float(ik_arm_root_R[0],ik_arm_root_R[1],ik_arm_root_R[2])
-        ik_Arm_eff_R_Handle.set3Float(ik_arm_eff_R[0],ik_arm_eff_R[1],ik_arm_eff_R[2])   
+        ik_Arm_eff_R_Handle.set3Float(ik_arm_eff_R[0],ik_arm_eff_R[1],ik_arm_eff_R[2])
         ik_Arm_dir_R_Handle.set3Float(ik_arm_upv_R[0],ik_arm_upv_R[1],ik_arm_upv_R[2])
         ik_Arm_eff_rot_R_Handle.set3Double(ik_arm_eff_rot_R[0],ik_arm_eff_rot_R[1],ik_arm_eff_rot_R[2])
         ik_Spine_root_Handle.setClean()
@@ -515,7 +501,6 @@ def init_decode():
     kDoubleArray = om.MFnNumericData.kDoubleArray
     kBool = om.MFnNumericData.kBoolean
 
-        # Setup attribute helper functions and classes
     def add_nAttr(params):
         setattr(ikrig_decode,
                 params[0],
@@ -532,18 +517,20 @@ def init_decode():
         mAttr.storable = False
         mAttr.readable = True
         return getattr(ikrig_decode, params[0])
-    
+
+
+
     class out_euler_nAttr:
         i=0
 
         def create(self, params):
-            rotX = uAttr.create("rotateX" + str(self.i), "rx" + str(self.i), kAngle)
+            rotX = uAttr.create(f"rotateX{str(self.i)}", f"rx{str(self.i)}", kAngle)
             uAttr.writable = False
             uAttr.storable = False
-            rotY = uAttr.create("rotateY" + str(self.i), "ry" + str(self.i), kAngle)
+            rotY = uAttr.create(f"rotateY{str(self.i)}", f"ry{str(self.i)}", kAngle)
             uAttr.writable = False
             uAttr.storable = False
-            rotZ = uAttr.create("rotateZ" + str(self.i), "rz" + str(self.i), kAngle)
+            rotZ = uAttr.create(f"rotateZ{str(self.i)}", f"rz{str(self.i)}", kAngle)
             uAttr.writable = False
             uAttr.storable = False
             setattr(ikrig_decode,
@@ -554,9 +541,11 @@ def init_decode():
             nAttr.readable = True
             self.i += 1
             return getattr(ikrig_decode, params[0])
+
+
     euler_nAttr = out_euler_nAttr()  
 
-        
+
     # (2) Setup the input attributes
     in_attributes = []
     ikrig_decode.encoded_pose = tAttr.create('encoded_pose', 'ep', kDoubleArray, om.MFnDoubleArrayData().create())
@@ -613,7 +602,7 @@ def init_decode():
     out_attributes.append(euler_nAttr.create(('ik_Arm_eff_rot_L', 'ikr4')))
     out_attributes.append(add_out_nAttr(('ik_Arm_root_R','ikp5', k3Float)))
     out_attributes.append(add_out_nAttr(('ik_Arm_dir_R','ikd5', k3Float)))
-    out_attributes.append(add_out_nAttr(('ik_Arm_eff_R','ike5', k3Float)))  
+    out_attributes.append(add_out_nAttr(('ik_Arm_eff_R','ike5', k3Float)))
     out_attributes.append(euler_nAttr.create(('ik_Arm_eff_rot_R', 'ikr5')))
 
     # (4) Add the attributes to the node
